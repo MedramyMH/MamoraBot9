@@ -13,18 +13,32 @@ function App() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(30);
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [countdown, setCountdown] = useState(refreshInterval);
+  const [selectedSymbols, setSelectedSymbols] = useState(["EUR/USD", "BTC/USD"]);
+
+
+  // useEffect(() => {
+  //   let interval;
+  //   if (autoRefresh) {
+  //     interval = setInterval(() => {
+  //       setLastUpdate(new Date());
+  //     }, refreshInterval * 1000);
+  //   }
+  //   return () => {
+  //     if (interval) clearInterval(interval);
+  //   };
+  // }, [autoRefresh, refreshInterval]);
 
   useEffect(() => {
-    let interval;
+    setCountdown(refreshInterval);
     if (autoRefresh) {
-      interval = setInterval(() => {
-        setLastUpdate(new Date());
-      }, refreshInterval * 1000);
+      const timer = setInterval(() => {
+        setCountdown((prev) => (prev > 0 ? prev - 1 : refreshInterval));
+      }, 1000);
+      return () => clearInterval(timer);
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, refreshInterval, lastUpdate]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -32,7 +46,7 @@ function App() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-4">
-            🚀 MamoraBot7 - Advanced Trading AI
+            🚀 Expert Bot Trader - Advanced Trading AI
           </h1>
           <p className="text-xl text-gray-300 mb-6">
             Professional Trading Signals with Forex, Crypto & Stock Analysis
@@ -93,6 +107,8 @@ function App() {
                   <div>🕐 Last Update: {lastUpdate.toLocaleTimeString()}</div>
                   <div>🔄 Auto-refresh: {autoRefresh ? 'Enabled' : 'Disabled'}</div>
                   <div>⏱️ Update Frequency: {refreshInterval}s</div>
+                  <div>⏳ Next refresh in: {countdown}s</div>   {/* 👈 countdown */}
+                  <div>📊 Active Symbols: {selectedSymbols.join(", ")}</div> {/* 👈 symbols */}
                   <div>📊 Signal Format: Structured</div>
                 </div>
               </div>
