@@ -48,17 +48,10 @@ const RealTimeMarketAnalysis = ({ autoRefresh, refreshInterval, lastUpdate }) =>
   // Fetch and update all data
   const updateAllData = async () => {
     if (selectedSymbols.length === 0) return;
-    
+  
     setLoading(true);
-    const newMarketData = {};
-    const newPocketOptionData = {};
-
-  const updateAllData = async () => {
-  if (selectedSymbols.length === 0) return;
-
-  setLoading(true);
-
-  try {
+  
+    try {
       // Run all fetches in parallel
       const marketResults = await Promise.all(
         selectedSymbols.map(symbol => dataManager.getMarketData(symbol))
@@ -88,7 +81,6 @@ const RealTimeMarketAnalysis = ({ autoRefresh, refreshInterval, lastUpdate }) =>
       setLoading(false);
     }
   };
-
 
 
 
