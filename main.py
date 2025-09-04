@@ -66,42 +66,61 @@ class TechnicalAnalyzer:
     
     @staticmethod
     def calculate_indicators(df: pd.DataFrame) -> Dict:
-        """Calculate technical indicators"""
+        """Calculate technical indicators (محسّنة)"""
         indicators = {}
-        
+    
         # Moving Averages
         indicators['sma_20'] = df['Close'].rolling(window=20).mean().iloc[-1]
         indicators['sma_50'] = df['Close'].rolling(window=50).mean().iloc[-1]
-        indicators['ema_12'] = df['Close'].ewm(span=12).mean().iloc[-1]
-        indicators['ema_26'] = df['Close'].ewm(span=26).mean().iloc[-1]
-        
-        # RSI
+        indicators['ema_12'] = df['Close'].ewm(span=12, adjust=False).mean().iloc[-1]
+        indicators['ema_26'] = df['Close'].ewm(span=26, adjust=False).mean().iloc[-1]
+    
+        # RSI Wilder
         delta = df['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
-        indicators['rsi'] = 100 - (100 / (1 + rs)).iloc[-1]
-        
+        up = delta.clip(lower=0)
+        down = -delta.clip(upper=0)
+        roll_up = up.ewm(alpha=1/14, adjust=False).mean()
+        roll_down = down.ewm(alpha=1/14, adjust=False).mean()
+        rs = roll_up / roll_down.replace(0, 1e-9)
+        indicators['rsi'] = (100 - (100 / (1 + rs))).iloc[-1]
+    
+        # ATR
+        hl = df['High'] - df['Low']
+        hc = (df['High'] - df['Close'].shift()).abs()
+        lc = (df['Low'] - df['Close'].shift()).abs()
+        tr = pd.concat([hl, hc, lc], axis=1).max(axis=1)
+        indicators['atr'] = tr.ewm(alpha=1/14, adjust=False).mean().iloc[-1]
+    
+        # ADX
+        up_move = df['High'].diff()
+        down_move = -df['Low'].diff()
+        plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0.0)
+        minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0.0)
+        atr_ = tr.ewm(alpha=1/14, adjust=False).mean()
+        plus_di = 100 * pd.Series(plus_dm, index=df.index).ewm(alpha=1/14, adjust=False).mean() / atr_
+        minus_di = 100 * pd.Series(minus_dm, index=df.index).ewm(alpha=1/14, adjust=False).mean() / atr_
+        dx = (abs(plus_di - minus_di) / (plus_di + minus_di).replace(0, 1e-9)) * 100
+        indicators['adx'] = dx.ewm(alpha=1/14, adjust=False).mean().iloc[-1]
+    
         # MACD
-        indicators['macd'] = indicators['ema_12'] - indicators['ema_26']
-        indicators['macd_signal'] = pd.Series([indicators['macd']]).ewm(span=9).mean().iloc[0]
-        indicators['macd_histogram'] = indicators['macd'] - indicators['macd_signal']
-        
-        # Bollinger Bands
-        bb_period = 20
-        bb_std = 2
-        sma = df['Close'].rolling(window=bb_period).mean()
-        std = df['Close'].rolling(window=bb_period).std()
-        indicators['bb_upper'] = (sma + (std * bb_std)).iloc[-1]
-        indicators['bb_lower'] = (sma - (std * bb_std)).iloc[-1]
-        indicators['bb_middle'] = sma.iloc[-1]
-        
+        ema12 = df['Close'].ewm(span=12, adjust=False).mean()
+        ema26 = df['Close'].ewm(span=26, adjust=False).mean()
+        macd_line = ema12 - ema26
+        signal_line = macd_line.ewm(span=9, adjust=False).mean()
+        indicators['macd_hist'] = (macd_line - signal_line).iloc[-1]
+    
         # Stochastic Oscillator
         low_14 = df['Low'].rolling(window=14).min()
         high_14 = df['High'].rolling(window=14).max()
-        indicators['stoch_k'] = ((df['Close'] - low_14) / (high_14 - low_14) * 100).iloc[-1]
-        
+        k = ((df['Close'] - low_14) / (high_14 - low_14) * 100).fillna(50)
+        d = k.rolling(3).mean().fillna(50)
+        indicators['stoch_k'] = k.iloc[-1]
+        indicators['stoch_d'] = d.iloc[-1]
+        indicators['stoch_cross_up'] = (k.iloc[-2] < d.iloc[-2]) and (k.iloc[-1] > d.iloc[-1])
+        indicators['stoch_cross_dn'] = (k.iloc[-2] > d.iloc[-2]) and (k.iloc[-1] < d.iloc[-1])
+    
         return indicators
+
 
 class SmartTradingEngine:
     """Intelligent trading signal generator with dual source analysis"""
