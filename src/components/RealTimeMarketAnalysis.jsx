@@ -237,6 +237,5 @@ const RealTimeMarketAnalysis = ({ autoRefresh, refreshInterval, lastUpdate }) =>
       )}
     </div>
   );
-};
-};
+
 export default RealTimeMarketAnalysis;
