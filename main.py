@@ -11,6 +11,13 @@ import threading
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 import json
+from datetime import timezone
+
+def seconds_to_next_candle(tf_seconds=60):
+    now = datetime.now(timezone.utc)
+    epoch = int(now.timestamp())
+    remaining = tf_seconds - (epoch % tf_seconds)
+    return remaining
 
 # Configure Streamlit page
 st.set_page_config(
@@ -132,16 +139,55 @@ class SmartTradingEngine:
     def generate_smart_signal(self, symbol: str, market_data: Dict, pocket_option_data: Dict) -> TradingSignal:
         """Generate intelligent trading signals considering both data sources"""
         
-        # Calculate confidence based on agreement between sources
-        price_diff = abs(market_data['price'] - pocket_option_data['price']) / market_data['price']
-        base_confidence = max(0.1, 1.0 - (price_diff * 10))  # Lower confidence if prices diverge significantly
-        
+
         # Technical analysis signals
         indicators = market_data['indicators']
         po_indicators = pocket_option_data['indicators']
         
         signal_strength = 0
         signal_count = 0
+        # ind = market_data['indicators']
+        # po_ind = pocket_option_data['indicators']
+        
+        # Trend + momentum filters
+        trend_up = (indicators['ema_12'] > indicators['ema_26']) and (indicators['adx'] >= 20)
+        trend_dn = (indicators['ema_12'] < indicators['ema_26']) and (indicators['adx'] >= 20)
+        
+        bull_momentum = (indicators['macd_hist'] > 0) and (indicators['rsi'] > 50)
+        bear_momentum = (indicators['macd_hist'] < 0) and (indicators['rsi'] < 50)
+        
+        # Stochastic confirmation
+        stoch_up = indicators.get('stoch_cross_up', False)
+        stoch_dn = indicators.get('stoch_cross_dn', False)
+        
+        signal_type = "HOLD"
+        score = 0.0
+        
+        if trend_up and bull_momentum:
+            score += 0.6
+            if stoch_up: score += 0.15
+        if trend_dn and bear_momentum:
+            score += 0.6
+            if stoch_dn: score += 0.15
+        
+        # Price diff penalty
+        price_diff = abs(market_data['price'] - pocket_option_data['price']) / max(market_data['price'], 1e-9)
+        score *= max(0.1, 1.0 - price_diff * 8)
+
+
+        # Calculate confidence based on agreement between sources
+        # price_diff = abs(market_data['price'] - pocket_option_data['price']) / market_data['price']
+  
+        # Final decision
+        if score >= 0.65:
+            signal_type = "BUY" if trend_up else "SELL"
+        elif score >= 0.5:
+            signal_type = "HOLD"
+        else:
+            signal_type = "HOLD"
+        
+        base_confidence = float(np.clip(score, 0.1, 0.99))              
+        # base_confidence = max(0.1, 1.0 - (price_diff * 10))  # Lower confidence if prices diverge significantly
         
         # RSI signals
         if indicators['rsi'] < 30 and po_indicators['rsi'] < 35:
@@ -266,14 +312,36 @@ def main():
     
     # Sidebar configuration
     st.sidebar.header("⚙️ Configuration")
-    
+
+
+    # Timeframe selection
+    tf_map = {"1m": "1m", "5m": "5m", "15m": "15m"}
+    timeframe = st.sidebar.selectbox("⏱️ Select timeframe", list(tf_map.keys()), index=0)
+
+    # Symbol selection
+    # default_symbols = ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "AMZN", "META", "NFLX"]
+    # selected_symbols = st.sidebar.multiselect(
+    #     "Select Trading Symbols",
+    #     options=default_symbols + ["SPY", "QQQ", "IWM", "GLD", "BTC-USD", "ETH-USD"],
+    #     default=default_symbols[:4]
+    # )
+
     # Symbol selection
     default_symbols = ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "AMZN", "META", "NFLX"]
     selected_symbols = st.sidebar.multiselect(
         "Select Trading Symbols",
-        options=default_symbols + ["SPY", "QQQ", "IWM", "GLD", "BTC-USD", "ETH-USD"],
+        options=default_symbols + st.session_state.get("extra_symbols", []),
         default=default_symbols[:4]
     )
+    
+    # Add custom symbols dynamically
+    new_sym = st.sidebar.text_input("➕ Add symbol (ex: EURUSD, BTC-USD)")
+    if st.sidebar.button("Add Symbol"):
+        if "extra_symbols" not in st.session_state:
+            st.session_state["extra_symbols"] = []
+        if new_sym and new_sym.upper() not in st.session_state["extra_symbols"]:
+            st.session_state["extra_symbols"].append(new_sym.upper())
+
     
     # Auto-refresh settings
     auto_refresh = st.sidebar.checkbox("Auto Refresh", value=True)
@@ -307,8 +375,9 @@ def main():
                         col_a, col_b, col_c = st.columns(3)
                         
                         # Fetch market data
-                        market_data = data_manager.get_market_data(symbol)
-                        
+                        # market_data = data_manager.get_market_data(symbol)
+                        market_data = data_manager.fetch(symbol, interval=tf_map[timeframe], limit=200)
+
                         if market_data:
                             # Generate Pocket Option simulation data
                             po_price = pocket_option_sim.get_pocket_option_price(market_data['price'])
