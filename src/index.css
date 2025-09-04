@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark mode base styles */
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  
+  body {
+    @apply bg-gray-900 text-gray-100;
+  }
+}
+
+/* Custom scrollbar for dark mode */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 25px;
+  transition: all 0.3s;
+  background-color: rgba(156, 163, 175, 0.3);
+  &:hover {
+    background-color: rgba(156, 163, 175, 0.5);
+  }
+}
+
+::-webkit-scrollbar-corner {
+  display: none;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(75, 85, 99, 0.2);
+}
+
+/* Gradient backgrounds */
+.gradient-bg {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-card {
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.9) 0%, rgba(31, 41, 55, 0.9) 100%);
+}
+
+/* Neon glow effects */
+.neon-green {
+  box-shadow: 0 0 5px #10b981, 0 0 10px #10b981, 0 0 15px #10b981;
+}
+
+.neon-red {
+  box-shadow: 0 0 5px #ef4444, 0 0 10px #ef4444, 0 0 15px #ef4444;
+}
+
+.neon-blue {
+  box-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6, 0 0 15px #3b82f6;
+}
+
+/* Animated elements */
+.pulse-slow {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Custom checkbox styles */
+.custom-checkbox {
+  @apply relative inline-flex items-center justify-center w-5 h-5 border-2 border-gray-600 rounded bg-transparent cursor-pointer transition-all duration-200;
+}
+
+.custom-checkbox:checked {
+  @apply bg-blue-600 border-blue-600;
+}
+
+.custom-checkbox:checked::after {
+  content: '✓';
+  @apply absolute text-white text-xs font-bold;
+}
+
+/* Modern button styles */
+.modern-btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95;
+}
+
+.modern-btn-primary {
+  @apply modern-btn bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl;
+}
+
+.modern-btn-secondary {
+  @apply modern-btn bg-gray-700 text-gray-200 hover:bg-gray-600 border border-gray-600 hover:border-gray-500;
+}
+
+/* Chart container improvements */
+.chart-container {
+  @apply bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-2xl relative;
+  background: linear-gradient(145deg, rgba(31, 41, 55, 0.9), rgba(17, 24, 39, 0.9));
+  z-index: 1;
+}
+
+/* Fix for overlapping elements */
+.chart-container canvas,
+.chart-container svg {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/* Ensure buttons and interactive elements are clickable */
+button, 
+select, 
+input, 
+a {
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+/* Fix background gradients from blocking interactions */
+.bg-gradient-to-br,
+.bg-gradient-to-r,
+[class*="bg-gradient"] {
+  pointer-events: none;
+}
+
+.bg-gradient-to-br > *,
+.bg-gradient-to-r > *,
+[class*="bg-gradient"] > * {
+  pointer-events: auto;
+}
+/* Alert notification animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out forwards;
+}
